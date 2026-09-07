@@ -1,5 +1,21 @@
-# Fraud Detection & Investigation System
+## Work in Progress
 
+<p align="center">
+  <img src="https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif" width="350">
+</p>
+
+<p align="center">
+  <b>🚧 Work in Progress 🚧</b>
+</p>
+
+<p align="center">
+  Building, breaking, debugging, rebuilding...<br>
+  Repeat until it works.
+</p>
+<br>
+<br>
+
+## Building
 An end-to-end fraud detection system combining machine learning, behavioral feature engineering, explainable AI, and later-stage generative AI investigation.
 
 ## Project Overview
