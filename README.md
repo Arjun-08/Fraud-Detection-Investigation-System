@@ -33,7 +33,7 @@ The system is being developed incrementally, beginning with rigorous tabular mac
 |---|---|---|
 | Phase 1 | Completed | Data loading and quality analysis |
 | Phase 2 | Completed | EDA, temporal analysis and feature engineering |
-| Phase 3 | In progress | comparision and development of different ML models|
+| Phase 3 | changes in preprocessing and model methods | comparision and development of different ML models|
 | Phase 4 | Planned | Threshold optimization, calibration and cost-based decisions |
 | Phase 5 | Planned | Explainable AI with SHAP |
 | Phase 6 | Planned | RAG-based fraud investigation |
