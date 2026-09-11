@@ -9,94 +9,43 @@ def load_data():
 
     target = "TX_FRAUD"
 
-    # --------------------------------------------------------
-    # Remove non-model columns
-    # --------------------------------------------------------
-
-    excluded_columns = [
-        "TRANSACTION_ID",
-        "TX_DATETIME",
-        "CUSTOMER_ID",
-        "TERMINAL_ID",
-        "TX_FRAUD_SCENARIO",
-    ]
-
-    excluded_columns = [
-        col
-        for col in excluded_columns
-        if col in train.columns
-    ]
-
-    print("\nExcluded columns:")
-    for col in excluded_columns:
-        print(f"  - {col}")
-
     X_train = train.drop(
-        columns=[target] + excluded_columns
+        columns=[target]
     )
 
     y_train = train[target].astype(int)
 
     X_val = validation.drop(
-        columns=[target] + excluded_columns
+        columns=[target]
     )
 
     y_val = validation[target].astype(int)
-
-    # --------------------------------------------------------
-    # Feature consistency
-    # --------------------------------------------------------
 
     if list(X_train.columns) != list(X_val.columns):
         raise ValueError(
             "Train and validation feature columns do not match."
         )
 
-    # --------------------------------------------------------
-    # Numeric feature validation
-    # --------------------------------------------------------
-
+    # Ensure everything is numeric
     non_numeric = X_train.select_dtypes(
         exclude=np.number
     ).columns.tolist()
 
     if non_numeric:
         raise TypeError(
-            "Non-numeric model features detected: "
-            f"{non_numeric}"
+            f"Non-numeric features detected: {non_numeric}"
         )
 
-    # --------------------------------------------------------
-    # Missing / infinite values
-    # --------------------------------------------------------
-
+    # Missing values
     if X_train.isna().any().any():
         raise ValueError(
-            "Missing values detected in training features."
+            "Missing values detected in training data."
         )
 
     if X_val.isna().any().any():
         raise ValueError(
-            "Missing values detected in validation features."
+            "Missing values detected in validation data."
         )
-
-    if not np.isfinite(
-        X_train.to_numpy()
-    ).all():
-        raise ValueError(
-            "Infinite values detected in training features."
-        )
-
-    if not np.isfinite(
-        X_val.to_numpy()
-    ).all():
-        raise ValueError(
-            "Infinite values detected in validation features."
-        )
-
-    # --------------------------------------------------------
-    # Summary
-    # --------------------------------------------------------
 
     print(
         f"Train shape      : {X_train.shape}"

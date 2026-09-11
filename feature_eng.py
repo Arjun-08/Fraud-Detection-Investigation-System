@@ -1,643 +1,776 @@
-from pathlib import Path
-import time
-
+import os
 import numpy as np
 import pandas as pd
 
 
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
+# ============================================================
+# Configuration
+# ============================================================
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+INPUT_PATH = "artifacts/transactions_combined.pkl"
 
-DATA_FILE = (
-    PROJECT_ROOT
-    / "artifacts"
-    / "transactions_combined.pkl"
-)
+FEATURE_DIR = "artifacts/features"
 
-FEATURE_DIR = (
-    PROJECT_ROOT
-    / "artifacts"
-    / "features"
-)
+os.makedirs(FEATURE_DIR, exist_ok=True)
 
-FEATURE_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
+TARGET = "TX_FRAUD"
 
 
-# =============================================================================
-# UTILITY
-# =============================================================================
+# ============================================================
+# Utility
+# ============================================================
 
 def print_section(title):
-
-    print("\n" + "=" * 80)
+    print("\n" + "=" * 70)
     print(title)
-    print("=" * 80)
+    print("=" * 70)
 
 
-# =============================================================================
-# LOAD DATA
-# =============================================================================
+# ============================================================
+# Load data
+# ============================================================
 
-print_section(
-    "PHASE 2 — LEAKAGE-SAFE FEATURE ENGINEERING"
-)
+def load_data():
 
-print("\nLoading complete chronological dataset...")
+    print_section("LOADING DATA")
 
-start_time = time.time()
+    df = pd.read_pickle(INPUT_PATH)
 
-df = pd.read_pickle(DATA_FILE)
+    print(f"Rows    : {len(df):,}")
+    print(f"Columns : {len(df.columns)}")
 
-df = (
-    df.sort_values(
+    df["TX_DATETIME"] = pd.to_datetime(
+        df["TX_DATETIME"]
+    )
+
+    df = df.sort_values(
         ["TX_DATETIME", "TRANSACTION_ID"]
-    )
-    .reset_index(drop=True)
-)
-
-print(
-    f"Dataset loaded in "
-    f"{time.time() - start_time:.2f} seconds"
-)
-
-print(
-    f"Total transactions: "
-    f"{len(df):,}"
-)
-
-
-# =============================================================================
-# STEP 1 — TEMPORAL FEATURES
-# =============================================================================
-
-print_section(
-    "STEP 1 — TEMPORAL FEATURES"
-)
-
-df["hour"] = (
-    df["TX_DATETIME"].dt.hour
-)
-
-df["day_of_week"] = (
-    df["TX_DATETIME"].dt.dayofweek
-)
-
-df["day_of_month"] = (
-    df["TX_DATETIME"].dt.day
-)
-
-df["month"] = (
-    df["TX_DATETIME"].dt.month
-)
-
-df["is_weekend"] = (
-    df["day_of_week"] >= 5
-).astype("int8")
-
-
-# Cyclical encoding
-
-df["hour_sin"] = np.sin(
-    2 * np.pi * df["hour"] / 24
-)
-
-df["hour_cos"] = np.cos(
-    2 * np.pi * df["hour"] / 24
-)
-
-df["day_sin"] = np.sin(
-    2 * np.pi * df["day_of_week"] / 7
-)
-
-df["day_cos"] = np.cos(
-    2 * np.pi * df["day_of_week"] / 7
-)
-
-print(
-    "\nCreated:"
-)
-
-print(
-    "  hour"
-)
-
-print(
-    "  day_of_week"
-)
-
-print(
-    "  day_of_month"
-)
-
-print(
-    "  month"
-)
-
-print(
-    "  is_weekend"
-)
-
-print(
-    "  cyclical time features"
-)
-
-
-# =============================================================================
-# STEP 2 — TRANSACTION AMOUNT FEATURES
-# =============================================================================
-
-print_section(
-    "STEP 2 — TRANSACTION AMOUNT FEATURES"
-)
-
-df["log_amount"] = np.log1p(
-    df["TX_AMOUNT"]
-)
-
-print(
-    "\nCreated:"
-)
-
-print(
-    "  log_amount"
-)
-
-
-# =============================================================================
-# STEP 3 — CUSTOMER HISTORICAL FEATURES
-# =============================================================================
-
-print_section(
-    "STEP 3 — CUSTOMER HISTORICAL FEATURES"
-)
-
-print(
-    "\nCalculating customer history..."
-)
-
-customer_group = df.groupby(
-    "CUSTOMER_ID",
-    sort=False
-)
-
-
-# Number of previous transactions
-
-df["customer_tx_count"] = (
-    customer_group.cumcount()
-)
-
-
-# Previous transaction amount
-
-df["customer_previous_amount"] = (
-    customer_group["TX_AMOUNT"]
-    .shift(1)
-)
-
-
-# Previous transaction time
-
-customer_previous_time = (
-    customer_group["TX_DATETIME"]
-    .shift(1)
-)
-
-
-df["customer_time_since_previous"] = (
-    df["TX_DATETIME"]
-    - customer_previous_time
-).dt.total_seconds()
-
-
-# Running historical mean amount
-
-df["customer_mean_amount"] = (
-    customer_group["TX_AMOUNT"]
-    .transform(
-        lambda x:
-        x.shift(1)
-        .expanding()
-        .mean()
-    )
-)
-
-
-# Running historical standard deviation
-
-df["customer_amount_std"] = (
-    customer_group["TX_AMOUNT"]
-    .transform(
-        lambda x:
-        x.shift(1)
-        .expanding()
-        .std()
-    )
-)
-
-
-print(
-    "\nCustomer historical features created."
-)
-
-
-# =============================================================================
-# STEP 4 — TERMINAL HISTORICAL FEATURES
-# =============================================================================
-
-print_section(
-    "STEP 4 — TERMINAL HISTORICAL FEATURES"
-)
-
-print(
-    "\nCalculating terminal history..."
-)
-
-terminal_group = df.groupby(
-    "TERMINAL_ID",
-    sort=False
-)
-
-
-# Previous transaction count
-
-df["terminal_tx_count"] = (
-    terminal_group.cumcount()
-)
-
-
-# Previous transaction amount
-
-df["terminal_previous_amount"] = (
-    terminal_group["TX_AMOUNT"]
-    .shift(1)
-)
-
-
-# Previous transaction time
-
-terminal_previous_time = (
-    terminal_group["TX_DATETIME"]
-    .shift(1)
-)
-
-
-df["terminal_time_since_previous"] = (
-    df["TX_DATETIME"]
-    - terminal_previous_time
-).dt.total_seconds()
-
-
-# Running historical mean
-
-df["terminal_mean_amount"] = (
-    terminal_group["TX_AMOUNT"]
-    .transform(
-        lambda x:
-        x.shift(1)
-        .expanding()
-        .mean()
-    )
-)
-
-
-print(
-    "\nTerminal historical features created."
-)
-
-
-# =============================================================================
-# STEP 5 — BEHAVIORAL DEVIATION FEATURES
-# =============================================================================
-
-print_section(
-    "STEP 5 — BEHAVIORAL DEVIATION FEATURES"
-)
-
-df["amount_vs_customer_mean"] = (
-    df["TX_AMOUNT"]
-    / (
-        df["customer_mean_amount"]
-        + 1e-6
-    )
-)
-
-df["amount_vs_terminal_mean"] = (
-    df["TX_AMOUNT"]
-    / (
-        df["terminal_mean_amount"]
-        + 1e-6
-    )
-)
-
-
-# =============================================================================
-# STEP 6 — CLEAN INFINITE VALUES
-# =============================================================================
-
-print_section(
-    "STEP 6 — NUMERICAL SANITY CHECK"
-)
-
-numeric_columns = df.select_dtypes(
-    include=np.number
-).columns
-
-infinite_count = np.isinf(
-    df[numeric_columns]
-    .to_numpy()
-).sum()
-
-print(
-    f"\nInfinite values found: "
-    f"{infinite_count:,}"
-)
-
-if infinite_count > 0:
+    ).reset_index(drop=True)
 
     print(
-        "\nReplacing infinite values with NaN..."
+        f"Date range: "
+        f"{df['TX_DATETIME'].min()} "
+        f"to "
+        f"{df['TX_DATETIME'].max()}"
     )
 
-    df.replace(
-        [np.inf, -np.inf],
-        np.nan,
-        inplace=True
+    return df
+
+
+# ============================================================
+# Temporal features
+# ============================================================
+
+def create_temporal_features(df):
+
+    print_section("CREATING TEMPORAL FEATURES")
+
+    dt = df["TX_DATETIME"]
+
+    df["hour"] = dt.dt.hour
+
+    df["day_of_week"] = dt.dt.dayofweek
+
+    df["day_of_month"] = dt.dt.day
+
+    df["month"] = dt.dt.month
+
+    df["is_weekend"] = (
+        df["day_of_week"] >= 5
+    ).astype(np.int8)
+
+    # Cyclic encoding
+    df["hour_sin"] = np.sin(
+        2 * np.pi * df["hour"] / 24
     )
 
-
-# =============================================================================
-# STEP 7 — DEFINE MODEL FEATURES
-# =============================================================================
-
-print_section(
-    "STEP 7 — MODEL FEATURE DEFINITION"
-)
-
-excluded_columns = [
-    "TRANSACTION_ID",
-    "TX_DATETIME",
-    "CUSTOMER_ID",
-    "TERMINAL_ID",
-    "TX_FRAUD",
-    "TX_FRAUD_SCENARIO"
-]
-
-feature_columns = [
-    column
-    for column in df.columns
-    if column not in excluded_columns
-]
-
-
-print(
-    f"\nTotal model features: "
-    f"{len(feature_columns)}"
-)
-
-print("\nModel features:")
-
-for feature in feature_columns:
-
-    print(
-        f"  - {feature}"
+    df["hour_cos"] = np.cos(
+        2 * np.pi * df["hour"] / 24
     )
 
+    df["day_sin"] = np.sin(
+        2 * np.pi * df["day_of_week"] / 7
+    )
 
-# =============================================================================
-# STEP 8 — EXPLICIT LEAKAGE CHECK
-# =============================================================================
+    df["day_cos"] = np.cos(
+        2 * np.pi * df["day_of_week"] / 7
+    )
 
-print_section(
-    "STEP 8 — LEAKAGE CHECK"
-)
+    print("Temporal features created.")
 
-for column in excluded_columns:
+    return df
 
-    if column in feature_columns:
 
-        raise RuntimeError(
-            f"LEAKAGE ERROR: "
-            f"{column} is present in model features."
+# ============================================================
+# Transaction features
+# ============================================================
+
+def create_transaction_features(df):
+
+    print_section("CREATING TRANSACTION FEATURES")
+
+    df["log_amount"] = np.log1p(
+        df["TX_AMOUNT"].clip(lower=0)
+    )
+
+    print("Transaction features created.")
+
+    return df
+
+
+# ============================================================
+# Customer historical features
+# ============================================================
+
+def create_customer_features(df):
+
+    print_section("CREATING CUSTOMER BEHAVIOR FEATURES")
+
+    customer = df.groupby(
+        "CUSTOMER_ID",
+        sort=False
+    )
+
+    # Number of previous transactions
+    df["customer_tx_count"] = (
+        customer.cumcount()
+    )
+
+    # Previous transaction amount
+    df["customer_previous_amount"] = (
+        customer["TX_AMOUNT"]
+        .shift(1)
+    )
+
+    # Previous transaction timestamp
+    previous_customer_time = (
+        customer["TX_DATETIME"]
+        .shift(1)
+    )
+
+    df["customer_time_since_previous"] = (
+        (
+            df["TX_DATETIME"]
+            - previous_customer_time
+        )
+        .dt.total_seconds()
+    )
+
+    # Running sum
+    customer_amount_sum = (
+        customer["TX_AMOUNT"]
+        .cumsum()
+        .shift(1)
+    )
+
+    df["customer_mean_amount"] = (
+        customer_amount_sum
+        / df["customer_tx_count"].replace(
+            0,
+            np.nan
+        )
+    )
+
+    # Running squared sum
+    customer_squared = (
+        df["TX_AMOUNT"] ** 2
+    )
+
+    running_squared = (
+        customer_squared
+        .groupby(
+            df["CUSTOMER_ID"],
+            sort=False
+        )
+        .cumsum()
+        .shift(1)
+    )
+
+    count = df[
+        "customer_tx_count"
+    ].replace(
+        0,
+        np.nan
+    )
+
+    variance = (
+        running_squared / count
+        - df["customer_mean_amount"] ** 2
+    )
+
+    df["customer_amount_std"] = np.sqrt(
+        variance.clip(lower=0)
+    )
+
+    # Amount deviation
+    df["amount_vs_customer_mean"] = (
+        df["TX_AMOUNT"]
+        / df["customer_mean_amount"].replace(
+            0,
+            np.nan
+        )
+    )
+
+    df["customer_amount_zscore"] = (
+        (
+            df["TX_AMOUNT"]
+            - df["customer_mean_amount"]
+        )
+        /
+        df["customer_amount_std"].replace(
+            0,
+            np.nan
+        )
+    )
+
+    # First-seen time
+    first_customer_time = (
+        df.groupby(
+            "CUSTOMER_ID",
+            sort=False
+        )["TX_DATETIME"]
+        .transform("min")
+    )
+
+    df["customer_age_seconds"] = (
+        (
+            df["TX_DATETIME"]
+            - first_customer_time
+        )
+        .dt.total_seconds()
+    )
+
+    print("Customer behavioral features created.")
+
+    return df
+
+
+# ============================================================
+# Terminal historical features
+# ============================================================
+
+def create_terminal_features(df):
+
+    print_section("CREATING TERMINAL BEHAVIOR FEATURES")
+
+    terminal = df.groupby(
+        "TERMINAL_ID",
+        sort=False
+    )
+
+    df["terminal_tx_count"] = (
+        terminal.cumcount()
+    )
+
+    df["terminal_previous_amount"] = (
+        terminal["TX_AMOUNT"]
+        .shift(1)
+    )
+
+    previous_terminal_time = (
+        terminal["TX_DATETIME"]
+        .shift(1)
+    )
+
+    df["terminal_time_since_previous"] = (
+        (
+            df["TX_DATETIME"]
+            - previous_terminal_time
+        )
+        .dt.total_seconds()
+    )
+
+    terminal_sum = (
+        terminal["TX_AMOUNT"]
+        .cumsum()
+        .shift(1)
+    )
+
+    df["terminal_mean_amount"] = (
+        terminal_sum
+        / df["terminal_tx_count"].replace(
+            0,
+            np.nan
+        )
+    )
+
+    df["amount_vs_terminal_mean"] = (
+        df["TX_AMOUNT"]
+        / df["terminal_mean_amount"].replace(
+            0,
+            np.nan
+        )
+    )
+
+    terminal_first_time = (
+        df.groupby(
+            "TERMINAL_ID",
+            sort=False
+        )["TX_DATETIME"]
+        .transform("min")
+    )
+
+    df["terminal_age_seconds"] = (
+        (
+            df["TX_DATETIME"]
+            - terminal_first_time
+        )
+        .dt.total_seconds()
+    )
+
+    print("Terminal behavioral features created.")
+
+    return df
+
+
+# ============================================================
+# Velocity features
+# ============================================================
+
+def create_velocity_features(df):
+
+    print_section("CREATING VELOCITY FEATURES")
+
+    # --------------------------------------------------------
+    # Customer rolling transaction counts
+    # --------------------------------------------------------
+
+    customer_time = df.set_index(
+        "TX_DATETIME"
+    )
+
+    for window in ["1h", "6h", "24h", "7d"]:
+
+        values = (
+            customer_time
+            .groupby("CUSTOMER_ID")["TX_AMOUNT"]
+            .rolling(window)
+            .count()
+            .reset_index(
+                level=0,
+                drop=True
+            )
         )
 
+        # Remove current transaction
+        values = values - 1
 
-# Specifically ensure fraud scenario is excluded
+        df[
+            f"customer_tx_count_{window}"
+        ] = values.values
 
-assert (
-    "TX_FRAUD_SCENARIO"
-    not in feature_columns
-)
+    # --------------------------------------------------------
+    # Customer rolling amount
+    # --------------------------------------------------------
 
-assert (
-    "TX_FRAUD"
-    not in feature_columns
-)
+    for window in ["1h", "24h", "7d"]:
+
+        values = (
+            customer_time
+            .groupby("CUSTOMER_ID")["TX_AMOUNT"]
+            .rolling(window)
+            .sum()
+            .reset_index(
+                level=0,
+                drop=True
+            )
+        )
+
+        values = values - df[
+            "TX_AMOUNT"
+        ].values
+
+        df[
+            f"customer_amount_sum_{window}"
+        ] = values.values
+
+    # --------------------------------------------------------
+    # Terminal rolling transaction counts
+    # --------------------------------------------------------
+
+    for window in ["1h", "6h", "24h", "7d"]:
+
+        values = (
+            customer_time
+            .groupby("TERMINAL_ID")["TX_AMOUNT"]
+            .rolling(window)
+            .count()
+            .reset_index(
+                level=0,
+                drop=True
+            )
+        )
+
+        values = values - 1
+
+        df[
+            f"terminal_tx_count_{window}"
+        ] = values.values
+
+    # --------------------------------------------------------
+    # Terminal rolling amounts
+    # --------------------------------------------------------
+
+    for window in ["1h", "24h", "7d"]:
+
+        values = (
+            customer_time
+            .groupby("TERMINAL_ID")["TX_AMOUNT"]
+            .rolling(window)
+            .sum()
+            .reset_index(
+                level=0,
+                drop=True
+            )
+        )
+
+        values = values - df[
+            "TX_AMOUNT"
+        ].values
+
+        df[
+            f"terminal_amount_sum_{window}"
+        ] = values.values
+
+    print("Velocity features created.")
+
+    return df
 
 
-print(
-    "\nLeakage checks passed."
-)
+# ============================================================
+# Customer-terminal interaction
+# ============================================================
 
-print(
-    "Target columns are excluded."
-)
+def create_interaction_features(df):
+
+    print_section(
+        "CREATING CUSTOMER-TERMINAL FEATURES"
+    )
+
+    pair = (
+        df.groupby(
+            ["CUSTOMER_ID", "TERMINAL_ID"],
+            sort=False
+        )
+    )
+
+    df["customer_terminal_tx_count"] = (
+        pair.cumcount()
+    )
+
+    previous_pair_time = (
+        pair["TX_DATETIME"]
+        .shift(1)
+    )
+
+    df["customer_terminal_time_since_previous"] = (
+        (
+            df["TX_DATETIME"]
+            - previous_pair_time
+        )
+        .dt.total_seconds()
+    )
+
+    df["customer_terminal_seen_before"] = (
+        (
+            df["customer_terminal_tx_count"]
+            > 0
+        )
+        .astype(np.int8)
+    )
+
+    df["customer_seen_before"] = (
+        (
+            df["customer_tx_count"]
+            > 0
+        )
+        .astype(np.int8)
+    )
+
+    df["terminal_seen_before"] = (
+        (
+            df["terminal_tx_count"]
+            > 0
+        )
+        .astype(np.int8)
+    )
+
+    print("Interaction features created.")
+
+    return df
 
 
-# =============================================================================
-# STEP 9 — VERIFY HISTORICAL FEATURES
-# =============================================================================
+# ============================================================
+# Historical fraud features
+# ============================================================
 
-print_section(
-    "STEP 9 — HISTORICAL FEATURE VALIDATION"
-)
+def create_historical_fraud_features(df):
 
-history_features = [
-    "customer_tx_count",
-    "customer_previous_amount",
-    "customer_time_since_previous",
-    "customer_mean_amount",
-    "customer_amount_std",
-    "terminal_tx_count",
-    "terminal_previous_amount",
-    "terminal_time_since_previous",
-    "terminal_mean_amount"
-]
+    print_section(
+        "CREATING HISTORICAL FRAUD FEATURES"
+    )
 
-print(
-    "\nHistorical features:"
-)
+    global_fraud_rate = (
+        df[TARGET].mean()
+    )
 
-for feature in history_features:
+    alpha = 10.0
 
-    null_count = df[feature].isna().sum()
+    # --------------------------------------------------------
+    # Customer
+    # --------------------------------------------------------
+
+    customer = df.groupby(
+        "CUSTOMER_ID",
+        sort=False
+    )
+
+    previous_fraud = (
+        customer[TARGET]
+        .cumsum()
+        .shift(1)
+        .fillna(0)
+    )
+
+    previous_count = (
+        df["customer_tx_count"]
+    )
+
+    df["customer_previous_fraud_count"] = (
+        previous_fraud
+    )
+
+    df["customer_historical_fraud_rate"] = (
+        previous_fraud
+        + alpha * global_fraud_rate
+    ) / (
+        previous_count + alpha
+    )
+
+    # --------------------------------------------------------
+    # Terminal
+    # --------------------------------------------------------
+
+    terminal = df.groupby(
+        "TERMINAL_ID",
+        sort=False
+    )
+
+    previous_terminal_fraud = (
+        terminal[TARGET]
+        .cumsum()
+        .shift(1)
+        .fillna(0)
+    )
+
+    previous_terminal_count = (
+        df["terminal_tx_count"]
+    )
+
+    df["terminal_previous_fraud_count"] = (
+        previous_terminal_fraud
+    )
+
+    df["terminal_historical_fraud_rate"] = (
+        previous_terminal_fraud
+        + alpha * global_fraud_rate
+    ) / (
+        previous_terminal_count + alpha
+    )
 
     print(
-        f"{feature:<35} "
-        f"initial/history NaNs: "
-        f"{null_count:,}"
+        f"Global fraud rate: "
+        f"{global_fraud_rate:.6%}"
+    )
+
+    print("Historical fraud features created.")
+
+    return df
+
+
+# ============================================================
+# Final cleanup
+# ============================================================
+
+def prepare_features(df):
+
+    print_section("PREPARING MODEL FEATURES")
+
+    excluded = [
+        "TRANSACTION_ID",
+        "TX_DATETIME",
+        "CUSTOMER_ID",
+        "TERMINAL_ID",
+        "TX_FRAUD_SCENARIO",
+    ]
+
+    feature_columns = [
+        col
+        for col in df.columns
+        if col not in excluded
+        and col != TARGET
+    ]
+
+    X = df[
+        feature_columns
+    ].copy()
+
+    y = df[
+        TARGET
+    ].copy()
+
+    # Replace infinities
+    X = X.replace(
+        [np.inf, -np.inf],
+        np.nan
+    )
+
+    # Fill missing historical values
+    # with zero because they represent
+    # absence of previous history.
+    X = X.fillna(0)
+
+    # Numeric validation
+    non_numeric = X.select_dtypes(
+        exclude=np.number
+    ).columns.tolist()
+
+    if non_numeric:
+
+        raise TypeError(
+            "Non-numeric features detected: "
+            f"{non_numeric}"
+        )
+
+    if not np.isfinite(
+        X.to_numpy()
+    ).all():
+
+        raise ValueError(
+            "Infinite values remain."
+        )
+
+    result = X.copy()
+
+    result[TARGET] = y.values
+
+    print(
+        f"Final feature count: "
+        f"{len(feature_columns)}"
+    )
+
+    print(
+        f"Final dataset shape: "
+        f"{result.shape}"
+    )
+
+    return result, feature_columns
+
+
+# ============================================================
+# Main
+# ============================================================
+
+def main():
+
+    df = load_data()
+
+    df = create_temporal_features(df)
+
+    df = create_transaction_features(df)
+
+    df = create_customer_features(df)
+
+    df = create_terminal_features(df)
+
+    df = create_velocity_features(df)
+
+    df = create_interaction_features(df)
+
+    df = create_historical_fraud_features(df)
+
+    features, feature_columns = prepare_features(
+        df
+    )
+
+    # --------------------------------------------------------
+    # Chronological split
+    # --------------------------------------------------------
+
+    n = len(features)
+
+    train_end = int(
+        n * 0.70
+    )
+
+    validation_end = int(
+        n * 0.85
+    )
+
+    train = features.iloc[
+        :train_end
+    ].copy()
+
+    validation = features.iloc[
+        train_end:validation_end
+    ].copy()
+
+    test = features.iloc[
+        validation_end:
+    ].copy()
+
+    # --------------------------------------------------------
+    # Save
+    # --------------------------------------------------------
+
+    train.to_pickle(
+        f"{FEATURE_DIR}/train_features.pkl"
+    )
+
+    validation.to_pickle(
+        f"{FEATURE_DIR}/validation_features.pkl"
+    )
+
+    test.to_pickle(
+        f"{FEATURE_DIR}/test_features.pkl"
+    )
+
+    pd.Series(
+        feature_columns
+    ).to_csv(
+        f"{FEATURE_DIR}/feature_columns.csv",
+        index=False,
+        header=["feature"]
+    )
+
+    # --------------------------------------------------------
+    # Summary
+    # --------------------------------------------------------
+
+    print_section(
+        "FEATURE ENGINEERING COMPLETE"
+    )
+
+    print(
+        f"Train      : {len(train):,}"
+    )
+
+    print(
+        f"Validation : {len(validation):,}"
+    )
+
+    print(
+        f"Test       : {len(test):,}"
+    )
+
+    print(
+        f"Features   : {len(feature_columns)}"
+    )
+
+    print(
+        f"\nSaved to: {FEATURE_DIR}"
     )
 
 
-# =============================================================================
-# STEP 10 — SPLIT AFTER FEATURE CREATION
-# =============================================================================
-
-print_section(
-    "STEP 10 — TEMPORAL SPLIT"
-)
-
-n = len(df)
-
-train_end = int(
-    n * 0.70
-)
-
-validation_end = int(
-    n * 0.85
-)
-
-
-train_features = df.iloc[
-    :train_end
-].copy()
-
-validation_features = df.iloc[
-    train_end:validation_end
-].copy()
-
-test_features = df.iloc[
-    validation_end:
-].copy()
-
-
-print(
-    f"""
-TRAIN
-Rows : {len(train_features):,}
-Start: {train_features["TX_DATETIME"].min()}
-End  : {train_features["TX_DATETIME"].max()}
-
-VALIDATION
-Rows : {len(validation_features):,}
-Start: {validation_features["TX_DATETIME"].min()}
-End  : {validation_features["TX_DATETIME"].max()}
-
-TEST
-Rows : {len(test_features):,}
-Start: {test_features["TX_DATETIME"].min()}
-End  : {test_features["TX_DATETIME"].max()}
-"""
-)
-
-
-# =============================================================================
-# STEP 11 — SAVE
-# =============================================================================
-
-print_section(
-    "STEP 11 — SAVING FEATURE DATASETS"
-)
-
-train_file = (
-    FEATURE_DIR
-    / "train_features.pkl"
-)
-
-validation_file = (
-    FEATURE_DIR
-    / "validation_features.pkl"
-)
-
-test_file = (
-    FEATURE_DIR
-    / "test_features.pkl"
-)
-
-
-train_features.to_pickle(
-    train_file
-)
-
-validation_features.to_pickle(
-    validation_file
-)
-
-test_features.to_pickle(
-    test_file
-)
-
-
-pd.Series(
-    feature_columns
-).to_csv(
-    FEATURE_DIR
-    / "feature_columns.csv",
-    index=False,
-    header=["feature"]
-)
-
-
-print(
-    f"\nTrain features      : {train_file}"
-)
-
-print(
-    f"Validation features : {validation_file}"
-)
-
-print(
-    f"Test features       : {test_file}"
-)
-
-print(
-    f"Feature list        : "
-    f"{FEATURE_DIR / 'feature_columns.csv'}"
-)
-
-
-# =============================================================================
-# FINAL SUMMARY
-# =============================================================================
-
-print_section(
-    "PHASE 2 — FEATURE ENGINEERING COMPLETE"
-)
-
-print(
-    f"""
-Dataset
--------
-Total transactions : {len(df):,}
-
-Features
---------
-Model features     : {len(feature_columns)}
-
-Splits
--------
-Train              : {len(train_features):,}
-Validation         : {len(validation_features):,}
-Test               : {len(test_features):,}
-
-Important
----------
-Historical features were calculated on the
-complete chronological transaction stream.
-
-Each transaction only uses information from
-transactions occurring before it.
-
-Target leakage columns excluded:
-- TX_FRAUD
-- TX_FRAUD_SCENARIO
-- TRANSACTION_ID
-
-"""
-)
+if __name__ == "__main__":
+    main()
