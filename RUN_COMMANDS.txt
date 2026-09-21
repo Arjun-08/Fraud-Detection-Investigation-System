@@ -1,0 +1,27 @@
+1. Create environment
+   python -m venv .venv
+   .venv\Scripts\activate
+
+2. Install dependencies
+   pip install -r requirements.txt
+
+3. Put your existing dataset at:
+   data/transactions.pkl
+
+   Or change DATA_PATH in src/config.py.
+
+4. Train end-to-end
+   python train.py
+
+5. Start Streamlit
+   streamlit run app.py
+
+Generated artifacts:
+   artifacts/fraud_lgbm.joblib
+   artifacts/feature_columns.txt
+   artifacts/threshold.json
+   artifacts/metrics.json
+   artifacts/X_train.parquet
+   artifacts/X_valid.parquet
+   artifacts/X_test.parquet
+   artifacts/splits/*.pkl

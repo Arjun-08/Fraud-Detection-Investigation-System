@@ -1,0 +1,16 @@
+DATA SOURCE AND LICENSING NOTE
+
+This project is configured to consume a local copy of the Fraud Detection Handbook
+simulated transaction dataset.
+
+Source:
+https://github.com/Fraud-Detection-Handbook/fraud-detection-handbook
+
+The upstream repository states that notebook code is released under GNU GPL v3.0
+and prose/pictures under CC BY-SA 4.0. Review the upstream repository and the
+specific dataset distribution terms before redistributing upstream source data
+or derived upstream code.
+
+The raw dataset is intentionally NOT included in this project repository.
+
+This project does not claim ownership of the upstream dataset or handbook.
