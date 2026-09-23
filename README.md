@@ -416,7 +416,7 @@ This separation keeps quantitative prediction and narrative investigation distin
 
 The dataset is synthetic, so the reported results may not directly reflect real-world production performance. The local language model functions as a narrative and investigation assistant rather than a fraud classifier, while RAG effectiveness depends on the coverage and quality of the available knowledge base. The illustrative cost coefficients would need to be replaced with organization-specific estimates before operational deployment. The system also does not incorporate external intelligence such as identity, merchant, device, geolocation, sanctions, banking, or network data.
 
-This project serves as a research and portfolio implementation that integrates;
+This project integrates;
 ```text
 Machine Learning
 +
