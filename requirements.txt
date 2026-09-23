@@ -1,0 +1,14 @@
+numpy>=1.26,<3
+pandas>=2.2,<3
+scikit-learn>=1.5,<2
+lightgbm>=4.5,<5
+shap>=0.46,<1
+joblib>=1.4,<2
+streamlit>=1.40,<2
+plotly>=5.24,<7
+pyarrow>=17,<22
+faiss-cpu>=1.8,<2
+sentence-transformers>=3.0,<6
+transformers>=4.45,<5
+accelerate>=0.34,<2
+torch>=2.2,<3

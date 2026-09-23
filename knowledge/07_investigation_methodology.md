@@ -1,0 +1,2 @@
+# Investigation Methodology
+An investigation separates observed facts, model evidence, retrieved knowledge and generated narrative. The workflow retrieves the transaction, calculates behavioral context, obtains model probability, generates SHAP evidence, retrieves relevant knowledge, asks the local language model to summarize only supplied evidence, runs specialized agents, and produces a structured case report. Missing evidence must be stated as unavailable.

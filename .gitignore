@@ -1,0 +1,15 @@
+data/*
+!data/.gitkeep
+artifacts/*
+!artifacts/.gitkeep
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.safetensors
+.cache/

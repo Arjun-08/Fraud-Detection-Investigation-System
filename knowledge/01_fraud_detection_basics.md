@@ -1,0 +1,2 @@
+# Fraud Detection Basics
+Fraud detection is binary classification. The model estimates P(Y=1 | X=x), where Y=1 denotes fraud. A probability is converted to an operational decision with a threshold: REVIEW if p >= t, otherwise ALLOW. Accuracy alone can be misleading under severe class imbalance, so precision, recall, PR-AUC, F1 and MCC are useful complementary metrics. A false negative is fraudulent activity that is not flagged; a false positive is legitimate activity that is flagged.

@@ -1,0 +1,2 @@
+# Behavioral Features
+For time t and window W, historical velocity is N_t(W) = sum_j I(t-W <= t_j < t). The strict t_j < t condition excludes the current transaction. Previous fraud rate is F_t = previous_fraud_count / previous_transaction_count. Amount deviation is R_t = amount_t / (previous_customer_mean_amount + epsilon). Customer and terminal histories are calculated separately. Raw IDs are not direct model features; historical behavior is used instead.
