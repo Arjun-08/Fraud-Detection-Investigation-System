@@ -432,4 +432,4 @@ Agent orchestration
 can be combined into a single fraud-investigation workflow.
 
 ## Note:
->results are yet to be updated.
+>Results are yet to be updated. If you want to run the experiments, please follow the instructions provided in commands.txt before running the project.
