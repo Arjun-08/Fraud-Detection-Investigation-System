@@ -74,6 +74,17 @@ The project is designed around the simulated transaction data from the Fraud Det
 
 The raw dataset is intentionally not included in the repository. See `DATA_LICENSE_NOTE.txt` for the upstream source and licensing note.
 
+### Dataset Statistics
+
+- **Total Transactions:** 1,754,155
+- **Legitimate Transactions:** 1,739,474
+- **Fraudulent Transactions:** 14,681
+- **Fraud Rate:** 0.8369%
+- **Number of Features:** 9
+- **Time Period:** April 1, 2018 – September 30, 2018
+- **Dataset Size:** 88.54 MB
+- **Source:** Fraud Detection Handbook — Simulated Transaction Dataset
+  
 ## 3. Why time matters
 
 Fraud detection is time-dependent. Randomly mixing future and past transactions can make evaluation unrealistically easy.
