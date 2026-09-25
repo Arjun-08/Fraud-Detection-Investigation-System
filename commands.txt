@@ -1,0 +1,15 @@
+1. Create environment:
+   python -m venv .venv
+   .venv\Scripts\activate
+
+2. Install:
+   pip install -r requirements.txt
+
+3. Put the existing transaction dataset at:
+   data/transactions.pkl
+
+4. Run everything:
+   python run_full_system.py
+
+5. Start Streamlit:
+   streamlit run app.py
