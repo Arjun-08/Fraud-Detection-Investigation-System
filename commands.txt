@@ -2,14 +2,23 @@
    python -m venv .venv
    .venv\Scripts\activate
 
-2. Install:
+2. Install dependencies:
+   python -m pip install --upgrade pip
    pip install -r requirements.txt
+   python -m pip install torch==2.5.1+cpu --index-url https://download.pytorch.org/whl/cpu
 
-3. Put the existing transaction dataset at:
+3. Download the Fraud Detection Handbook simulated dataset:
+   git clone https://github.com/Fraud-Detection-Handbook/simulated-data-raw.git data/raw
+
+4. Prepare the transaction dataset:
+   python src/data_prep.py
+
+   This combines the daily transaction files from data/raw/data/
+   and generates:
    data/transactions.pkl
 
-4. Run everything:
-   python main.py
+5. Run the complete system:
+   Python main.py
 
-5. Start Streamlit for UI:
+6. Start Streamlit:
    streamlit run app.py
