@@ -9,7 +9,7 @@
    data/transactions.pkl
 
 4. Run everything:
-   python run_full_system.py
+   python main.py
 
-5. Start Streamlit:
+5. Start Streamlit for UI:
    streamlit run app.py
