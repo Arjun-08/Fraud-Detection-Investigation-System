@@ -444,3 +444,197 @@ can be combined into a single fraud-investigation workflow.
 
 ## Note:
 >Results are yet to be updated. If you want to run the experiments, please follow the instructions provided in commands.txt before running the project.
+
+## Results & Evaluation
+
+The complete pipeline was evaluated on a temporally separated test set. The model was trained on earlier transactions, while validation and test data were kept chronologically later to reduce temporal leakage and better reflect a real fraud-detection setting.
+
+### Dataset Split
+
+| Split      | Transactions | Fraud Cases | Fraud Rate |
+| ---------- | -----------: | ----------: | ---------: |
+| Train      |    1,227,908 |       9,996 |    0.8141% |
+| Validation |      263,123 |       2,355 |    0.8950% |
+| Test       |      263,124 |       2,330 |    0.8855% |
+
+The test set was kept untouched during model training and threshold selection.
+
+### Fraud Detection Performance
+
+The LightGBM classifier was evaluated on the untouched test set using the threshold selected exclusively from validation data.
+
+| Metric      | Test Result |
+| ----------- | ----------: |
+| ROC-AUC     |  **0.9437** |
+| PR-AUC      |  **0.3556** |
+| Precision   |  **0.7205** |
+| Recall      |  **0.2910** |
+| F1 Score    |  **0.4146** |
+| MCC         |  **0.4551** |
+| Review Rate | **0.3576%** |
+| Log Loss    |  **0.0346** |
+
+The selected classification threshold was **0.235**. At this operating point, only approximately **0.36% of transactions** were sent for review.
+
+### Confusion Matrix
+
+On the 263,124 transaction test set:
+
+|                       | Predicted Legitimate | Predicted Fraud |
+| --------------------- | -------------------: | --------------: |
+| **Actual Legitimate** |              260,531 |             263 |
+| **Actual Fraud**      |                1,652 |             678 |
+
+The model therefore identified **678 of the 2,330 fraudulent transactions** at the selected operating threshold while generating **263 false positives**.
+
+The distinction between ROC-AUC and threshold-dependent metrics is important here. A ROC-AUC of 0.9437 indicates strong ranking ability across possible thresholds, while the selected threshold reflects a specific operational trade-off between fraud detection, false positives, and investigation workload.
+
+### Threshold Optimization
+
+Instead of using the default probability threshold of 0.5, the system searches for an operating threshold using the validation set.
+
+The objective incorporates:
+
+* False-negative cost
+* False-positive cost
+* Manual review cost
+* Maximum allowable review rate
+
+The selected threshold is then frozen before evaluating the test set.
+
+```text
+Training Data
+      |
+      v
+Chronological Validation Set
+      |
+      v
+Threshold / Cost Optimization
+      |
+      v
+Selected Threshold = 0.235
+      |
+      v
+Untouched Test Set
+      |
+      v
+Final Evaluation
+```
+
+This prevents the test set from influencing the operating threshold.
+
+## Retrieval-Augmented Generation
+
+The investigation system also contains a fully local Retrieval-Augmented Generation (RAG) component.
+
+The knowledge base currently contains **11 project-authored knowledge chunks** covering topics such as:
+
+* Fraud detection fundamentals
+* Behavioral features
+* Temporal evaluation
+* Class imbalance
+* Threshold and cost optimization
+* SHAP explainability
+* Investigation methodology
+* RAG methodology
+* Agent responsibilities
+* Investigation report structure
+* System limitations
+
+The system uses:
+
+```text
+Embedding Model:
+sentence-transformers/all-MiniLM-L6-v2
+
+Embedding Dimension:
+384
+
+Vector Store:
+FAISS IndexFlatIP
+```
+
+### RAG Retrieval Evaluation
+
+The retrieval component was evaluated using representative questions covering the system's major concepts.
+
+| Metric              |     Result |
+| ------------------- | ---------: |
+| Recall@5            | **1.0000** |
+| MRR                 | **1.0000** |
+| Knowledge Chunks    |     **11** |
+| Embedding Dimension |    **384** |
+
+A Recall@5 of 1.0 means that the relevant knowledge source was retrieved within the top five results for all evaluation queries.
+
+An MRR of 1.0 indicates that the relevant source appeared at rank 1 for the evaluated queries.
+
+Example retrievals included:
+
+```text
+"How are historical velocity features calculated?"
+    → behavioral_features.md
+
+"Why is chronological splitting used?"
+    → temporal_evaluation.md
+
+"How does the system handle class imbalance?"
+    → class_imbalance.md
+
+"How is the decision threshold selected?"
+    → threshold_and_cost.md
+
+"How are SHAP contributions interpreted?"
+    → shap_explainability.md
+
+"What does the customer agent do?"
+    → agent_roles.md
+```
+
+## End-to-End Pipeline
+
+The current pipeline successfully executes the following stages:
+
+```text
+Raw Fraud Detection Handbook Dataset
+                |
+                v
+        Data Preparation
+                |
+                v
+      Chronological Splitting
+                |
+                v
+    Leakage-Safe Feature Engineering
+                |
+                v
+        LightGBM Classifier
+                |
+                v
+      Validation Threshold Search
+                |
+                v
+       Untouched Test Evaluation
+                |
+                v
+        SHAP Explainability
+                |
+                v
+        Local RAG Knowledge Base
+                |
+                v
+        Retrieval Evaluation
+                |
+                v
+       Local LLM Investigation
+                |
+                v
+        Agent Investigation
+                |
+                v
+          Streamlit Interface
+```
+
+The ML and RAG stages currently execute successfully from the command-line pipeline. The investigation agents and local LLM extend the system from simply detecting suspicious transactions toward producing evidence-grounded investigation reports.
+
+> **Note:** These results are based on the Fraud Detection Handbook's simulated transaction dataset. The dataset is synthetic, and therefore these metrics should not be interpreted as production fraud-detection performance. The system is intended as an end-to-end engineering and research project demonstrating temporal evaluation, leakage-safe feature engineering, imbalanced classification, explainability, retrieval-augmented investigation, and agent-based orchestration.
