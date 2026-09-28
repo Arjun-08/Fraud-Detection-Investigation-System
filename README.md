@@ -590,6 +590,7 @@ Example retrievals included:
 "What does the customer agent do?"
     → agent_roles.md
 ```
+> **Note:** The RAG knowledge `.md` files are excluded from GitHub via `.gitignore`. Run `python src/create_knowledge_base.py` to generate them locally before running the RAG pipeline.
 
 ## End-to-End Pipeline
 
