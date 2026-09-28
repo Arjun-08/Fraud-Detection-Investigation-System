@@ -638,4 +638,28 @@ Raw Fraud Detection Handbook Dataset
 
 The ML and RAG stages currently execute successfully from the command-line pipeline. The investigation agents and local LLM extend the system from simply detecting suspicious transactions toward producing evidence-grounded investigation reports.
 
+## Experiment & Results Checklist
+
+### Completed
+
+* [x] Dataset preparation
+* [x] Temporal train/validation/test split
+* [x] Leakage-safe feature engineering
+* [x] LightGBM classification
+* [x] Threshold optimization
+* [x] Test-set evaluation
+* [x] SHAP explainability
+* [x] RAG knowledge base
+* [x] FAISS retrieval
+* [x] RAG evaluation — Recall@5: **1.0000**, MRR: **1.0000**
+
+### Yet to Do
+
+* [ ] Local LLM
+* [ ] Investigation Agents
+* [ ] Agent Orchestration
+* [ ] End-to-End Investigation
+* [ ] Final System Evaluation
+
+
 > **Note:** These results are based on the Fraud Detection Handbook's simulated transaction dataset. The dataset is synthetic, and therefore these metrics should not be interpreted as production fraud-detection performance. The system is intended as an end-to-end engineering and research project demonstrating temporal evaluation, leakage-safe feature engineering, imbalanced classification, explainability, retrieval-augmented investigation, and agent-based orchestration.
